@@ -352,7 +352,6 @@ def detect_target(img):
     return None, False
 
 # ========== 7. 激光控制函数 ==========
-# ========== 7. 激光控制函数 ==========
 def laser_fire_3_pulses(aligned):
     """对准靶心且稳定后打3次脉冲"""
     global laser_fired, laser_pulse_idx, laser_pulse_state, laser_pulse_timer
@@ -413,69 +412,72 @@ target_detected = False
 aligned = False
 servo_move_x(current_pos_x,40)
 servo_move_y(current_pos_y,40)
-while True:
-    clock.tick()
-    img = sensor.snapshot()
+# Keep the laser off when the MicroPython loop exits with an exception.
+try:
+    while True:
+        clock.tick()
+        img = sensor.snapshot()
 
-    frame_count += 1
+        frame_count += 1
 
-    # 1. 读取串口指令（通过GPIO41）
-        # auto-fire based on alignment
+        # Historical contest code: arrival UART is configured but not read.
 
-    # 2. 检测靶面
-    target, target_detected = detect_target(img)
+        # 2. 检测靶面
+        target, target_detected = detect_target(img)
 
-    if target_detected and target:
-        last_target = target
+        if target_detected and target:
+            last_target = target
 
-    # 3. 绘制画面中心
-    img.draw_cross(mid_x, mid_y, 10, color=(255, 255, 0), thickness=1)
+        # 3. 绘制画面中心
+        img.draw_cross(mid_x, mid_y, 10, color=(255, 255, 0), thickness=1)
 
-    # 4. 计算误差和控制舵机
-    if target_detected and last_target:
-        cx, cy = last_target
-        error_x = cx - mid_x
-        error_y = cy - mid_y
+        # 4. 计算误差和控制舵机
+        if target_detected and last_target:
+            cx, cy = last_target
+            error_x = cx - mid_x
+            error_y = cy - mid_y
 
-        img.draw_line(mid_x, mid_y, cx, cy, color=(255, 0, 0), thickness=2)
-        img.draw_string_advanced(5, 20, 16, "E_x:{}".format(error_x), color=(255, 0, 0))
-        img.draw_string_advanced(5, 35, 16, "E_y:{}".format(error_y), color=(255, 0, 0))
+            img.draw_line(mid_x, mid_y, cx, cy, color=(255, 0, 0), thickness=2)
+            img.draw_string_advanced(5, 20, 16, "E_x:{}".format(error_x), color=(255, 0, 0))
+            img.draw_string_advanced(5, 35, 16, "E_y:{}".format(error_y), color=(255, 0, 0))
 
-        # 控制舵机移动
-        aligned = move_to_center(error_x, error_y, target_detected)
+            # 控制舵机移动
+            aligned = move_to_center(error_x, error_y, target_detected)
 
-        # 显示对准状态
-        if aligned:
-            img.draw_string_advanced(5, 80, 16, "ALIGNED", color=(0, 255, 0))
+            # 显示对准状态
+            if aligned:
+                img.draw_string_advanced(5, 80, 16, "ALIGNED", color=(0, 255, 0))
+            else:
+                img.draw_string_advanced(5, 80, 16, "MOVING...", color=(255, 255, 0))
+
+        elif last_target and not target_detected:
+            img.draw_string_advanced(5, 20, 16, "Lost target", color=(255, 0, 0))
+            aligned = False
         else:
-            img.draw_string_advanced(5, 80, 16, "MOVING...", color=(255, 255, 0))
+            img.draw_string_advanced(5, 20, 16, "No target", color=(255, 0, 0))
+            aligned = False
 
-    elif last_target and not target_detected:
-        img.draw_string_advanced(5, 20, 16, "Lost target", color=(255, 0, 0))
-        aligned = False
-    else:
-        img.draw_string_advanced(5, 20, 16, "No target", color=(255, 0, 0))
-        aligned = False
+        # 5. 激光控制：稳定对准后自动打3次
+        laser_fire_3_pulses(aligned)
 
-    # 5. 激光控制：稳定对准后自动打3次
-    laser_fire_3_pulses(aligned)
+        # 显示激光状态
+        if laser_pulse_state:
+            img.draw_string_advanced(5, 95, 16, "LASER:ON", color=(255, 0, 0))
+        else:
+            img.draw_string_advanced(5, 95, 16, "LASER:OFF", color=(100, 100, 100))
+        # 6. 显示FPS
+        fps = clock.fps()
+        img.draw_string_advanced(5, 5, 16, "FPS:{:.1f}".format(fps), color=(255, 0, 0))
 
-    # 显示激光状态
-    if laser_pulse_state:
-        img.draw_string_advanced(5, 95, 16, "LASER:ON", color=(255, 0, 0))
-    else:
-        img.draw_string_advanced(5, 95, 16, "LASER:OFF", color=(100, 100, 100))
-    # 6. 显示FPS
-    fps = clock.fps()
-    img.draw_string_advanced(5, 5, 16, "FPS:{:.1f}".format(fps), color=(255, 0, 0))
+        # 显示舵机位置信息
+        img.draw_string_advanced(5, 130, 12, "X:{} Y:{}".format(current_pos_x, current_pos_y), color=(150, 150, 150))
 
-    # 显示舵机位置信息
-    img.draw_string_advanced(5, 130, 12, "X:{} Y:{}".format(current_pos_x, current_pos_y), color=(150, 150, 150))
+        # 7. 显示图像
+        Display.show_image(img)
 
-    # 7. 显示图像
-    Display.show_image(img)
-
-    # 控制台输出（每30帧输出一次）
-    if frame_count % 30 == 0 and target_detected:
-        print("FPS:{:.1f} Target:({},{}) Aligned:{} Laser:{}".format(
-            fps, cx, cy, aligned, laser_pulse_state))
+        # 控制台输出（每30帧输出一次）
+        if frame_count % 30 == 0 and target_detected:
+            print("FPS:{:.1f} Target:({},{}) Aligned:{} Laser:{}".format(
+                fps, cx, cy, aligned, laser_pulse_state))
+finally:
+    laser_pin.value(0)

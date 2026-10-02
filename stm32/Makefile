@@ -1,16 +1,15 @@
 # STM32F103C8Tx Line-Follower Makefile
 
-GCC_PATH  = C:/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.win32_1.0.100.202602081740/tools/bin
-MAKE_PATH = C:/ST/STM32CubeIDE_2.1.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.make.win32_2.2.100.202601091506/tools/bin
+TOOLCHAIN_PREFIX ?= arm-none-eabi-
 
-CC      = $(GCC_PATH)/arm-none-eabi-gcc
-AS      = $(GCC_PATH)/arm-none-eabi-gcc -x assembler-with-cpp
-CP      = $(GCC_PATH)/arm-none-eabi-objcopy
-SZ      = $(GCC_PATH)/arm-none-eabi-size
+CC      = $(TOOLCHAIN_PREFIX)gcc
+AS      = $(TOOLCHAIN_PREFIX)gcc -x assembler-with-cpp
+CP      = $(TOOLCHAIN_PREFIX)objcopy
+SZ      = $(TOOLCHAIN_PREFIX)size
 HEX     = $(CP) -O ihex
 BIN     = $(CP) -O binary -S
 
-FW_REPO = C:/Users/lenovo/STM32Cube/Repository/STM32Cube_FW_F1_V1.8.7
+FW_REPO ?= $(HOME)/STM32Cube/Repository/STM32Cube_FW_F1_V1.8.7
 
 TARGET   = line_follower
 BUILD_DIR = build
@@ -22,6 +21,7 @@ HAL_INC   = $(FW_REPO)/Drivers/STM32F1xx_HAL_Driver/Inc
 CMSIS_INC = $(FW_REPO)/Drivers/CMSIS/Include
 DEV_INC   = $(FW_REPO)/Drivers/CMSIS/Device/ST/STM32F1xx/Include
 STARTUP   = $(FW_REPO)/Drivers/CMSIS/Device/ST/STM32F1xx/Source/Templates/gcc
+SYSTEM_SRC = $(FW_REPO)/Drivers/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
 
 CPU     = -mcpu=cortex-m3
 FPU     =
@@ -49,7 +49,7 @@ C_SOURCES += $(CORE_SRC)/line_sensor.c
 C_SOURCES += $(CORE_SRC)/motor.c
 C_SOURCES += $(CORE_SRC)/encoder.c
 C_SOURCES += $(CORE_SRC)/stm32f1xx_it.c
-C_SOURCES += $(CORE_SRC)/system_stm32f1xx.c
+C_SOURCES += $(SYSTEM_SRC)
 C_SOURCES += $(HAL_SRC)/stm32f1xx_hal.c
 C_SOURCES += $(HAL_SRC)/stm32f1xx_hal_cortex.c
 C_SOURCES += $(HAL_SRC)/stm32f1xx_hal_dma.c

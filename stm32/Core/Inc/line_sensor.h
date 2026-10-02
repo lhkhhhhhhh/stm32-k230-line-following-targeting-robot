@@ -10,7 +10,7 @@
 
 #define LINE_SENSOR_COUNT       8
 
-/* Returns bitmask: bit0=X1(PA7), ..., bit7=X8(PA0). 1=white, 0=black */
+/* Returns bitmask: bit0=X1(PA7), ..., bit7=X8(PA0). 1=black, 0=white. */
 uint8_t LineSensor_Read(void);
 
 /* Returns sensor position: -7 (far left) to +7 (far right), 0 = centered.

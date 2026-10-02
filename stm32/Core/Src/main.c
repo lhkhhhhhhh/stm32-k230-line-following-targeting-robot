@@ -144,13 +144,18 @@ int main(void)
 
         float correction = PID_KP*error + PID_KI*integral + PID_KD*derivative;
 
-        int16_t left  = (int16_t)(BASE_SPEED + correction);
-        int16_t right = (int16_t)(BASE_SPEED - correction);
+        /* Clamp in floating point before narrowing to int16_t. A derivative
+           spike can exceed the integer range when the line position jumps. */
+        float left_cmd = BASE_SPEED + correction;
+        float right_cmd = BASE_SPEED - correction;
 
-        if (left > MOTOR_MAX_SPEED) left = MOTOR_MAX_SPEED;
-        if (left < -MAX_REVERSE_SPEED) left = -MAX_REVERSE_SPEED;
-        if (right > MOTOR_MAX_SPEED) right = MOTOR_MAX_SPEED;
-        if (right < -MAX_REVERSE_SPEED) right = -MAX_REVERSE_SPEED;
+        if (left_cmd > MOTOR_MAX_SPEED) left_cmd = MOTOR_MAX_SPEED;
+        if (left_cmd < -MAX_REVERSE_SPEED) left_cmd = -MAX_REVERSE_SPEED;
+        if (right_cmd > MOTOR_MAX_SPEED) right_cmd = MOTOR_MAX_SPEED;
+        if (right_cmd < -MAX_REVERSE_SPEED) right_cmd = -MAX_REVERSE_SPEED;
+
+        int16_t left = (int16_t)left_cmd;
+        int16_t right = (int16_t)right_cmd;
 
         Motor_SetSpeed(left, right);
         HAL_Delay(5);
